@@ -9,6 +9,8 @@
         android:name="io.flutter.app.FlutterApplication"
         android:label="ethical_shopping"
         android:icon="@mipmap/logo">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAE3NKe76dBcX-XJsfbUG86kA8lYRN2Ow4"/>
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
@@ -37,6 +39,15 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="matterbasket.com"
+                    android:pathPrefix="/productos" />
+                <!-- note that the leading "/" is required for pathPrefix-->
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -46,4 +57,5 @@
 
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 </manifest>

@@ -1,8 +1,6 @@
 import 'package:ethical_shopping/category.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'listingPage.dart';
-import 'dart:developer' as developer;
 
 void main() => runApp(MyApp());
 
@@ -13,9 +11,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ethical Shopping',
       theme: ThemeData(
-        primaryColor: Colors.lightGreen,
-        accentColor: Colors.amber,
+        brightness: Brightness.light,
+        primaryColor: Colors.black,
+        accentColor: Colors.white,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: AppBarTheme(
+          brightness: Brightness.dark,
+        )
       ),
       home: MyHomePage(),
     );
@@ -80,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Navigator.push(context,
                 MaterialPageRoute(
                     builder: (BuildContext context) => ListingPage(
-                      search: 'sdfs',
+                      search: '',
                     )
                 )
             );
@@ -88,7 +90,6 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(icon: Icon(Icons.shopping_cart, color: Colors.white,), onPressed: () {
           }),
         ],
-        brightness: Brightness.dark,
       ),
       body: Center(
         child: ListView.separated(
