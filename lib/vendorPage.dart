@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'vendor.dart';
+import 'models/vendor.dart';
 
 class VendorPage extends StatefulWidget {
 

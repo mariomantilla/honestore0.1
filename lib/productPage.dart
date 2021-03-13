@@ -1,4 +1,5 @@
 import 'package:ethical_shopping/vendorPage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:android_intent/android_intent.dart';
@@ -6,7 +7,8 @@ import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:intl/intl.dart';
 import 'package:share/share.dart';
 
-import 'product.dart';
+import 'models/product.dart';
+import 'models/tag.dart';
 
 class ProductPage extends StatefulWidget {
 
@@ -24,6 +26,29 @@ class _ProductPageState extends State<ProductPage> {
 
   _ProductPageState({this.product});
 
+  Future<void> _tagInfoModal(Tag tag) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(tag.name),
+          content: SingleChildScrollView(
+            child: Text(tag.description),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Entendido'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
@@ -34,12 +59,6 @@ class _ProductPageState extends State<ProductPage> {
             pinned: true,
             expandedHeight: 250.0,
             flexibleSpace: FlexibleSpaceBar(
-              /*centerTitle: true,
-              title: Text(product.name, style: TextStyle(
-                  shadows: [
-                    Shadow(color: Colors.black, blurRadius: 10)
-                  ]
-              )),*/
               background: Image(
                   fit: BoxFit.cover,
                   image: product.image
@@ -98,6 +117,30 @@ class _ProductPageState extends State<ProductPage> {
                       ),)
                   ]
                 )
+              ),
+              Divider(height: 0,),
+              Padding(
+                padding: EdgeInsets.only(top: 10, right: 15, bottom: 10, left: 15),
+                child: Wrap(
+                  spacing: 5.0, // spacing between adjacent chips
+                  runSpacing: 5.0,
+                  children: product.tags.map((tag){
+                    return Chip(
+                      label: Text(tag.name), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      labelPadding: EdgeInsets.only(left: 4),
+                      deleteIcon: Icon(Icons.contact_support),
+                      onDeleted: () {
+                        _tagInfoModal(tag);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              Divider(height: 0,),
+              ListTile(
+                leading: Icon(Icons.store_sharp),
+
+                title: Text('Disponible para recoger')
               ),
               Container(
                 child: Stack(

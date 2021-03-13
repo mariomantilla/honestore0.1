@@ -5,9 +5,10 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong/latlong.dart';
-import 'category.dart';
-import 'product.dart';
-import 'vendor.dart';
+import 'models/category.dart';
+import 'models/product.dart';
+import 'models/vendor.dart';
+import 'models/tag.dart';
 import 'vendorPage.dart';
 
 class ListingPage extends StatefulWidget {
@@ -47,14 +48,16 @@ class _ListingPageState extends State<ListingPage> {
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body)['records'];
       return data.map<Product>((element) {
+        final fields = element['fields'];
         return Product(
           id: element['id'],
-          name: element['fields']['name'],
-          categories: element['fields']['categories'].map<int>((cat){return int.parse(cat);}).toList(),
-          image: NetworkImage(element['fields']['picture'][0]['thumbnails']['large']['url']),
-          price: Decimal.parse(element['fields']['price'].toString()),
-          vendor: Vendor(name: element['fields']['vendorName'][0]),
-          location: LatLng(element['fields']['lat'], element['fields']['lon'])
+          name: fields['name'],
+          categories: fields['categories'].map<int>((cat){return int.parse(cat);}).toList(),
+          image: NetworkImage(fields['picture'][0]['thumbnails']['large']['url']),
+          price: Decimal.parse(fields['price'].toString()),
+          vendor: Vendor(name: fields['vendorName'][0]),
+          location: LatLng(fields['lat'], element['fields']['lon']),
+          tags: [for (int i = 0; i < fields['tags'].length ; i++) Tag(name: fields['tagsName'][i], description: fields['tagsDescription'][i])],
         );
       }).toList();
     } else {

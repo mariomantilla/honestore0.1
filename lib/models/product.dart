@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong/latlong.dart';
 
 import 'vendor.dart';
+import 'tag.dart';
 
 class Product {
   final String id;
@@ -12,7 +13,8 @@ class Product {
   final Decimal price;
   final Vendor vendor;
   final LatLng location;
+  final List<Tag> tags;
 
-  Product({this.id, this.name, this.categories, this.image, this.price, this.vendor, this.location});
+  Product({this.id, this.name, this.categories, this.image, this.price, this.vendor, this.location, this.tags});
 
 }

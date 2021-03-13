@@ -1,6 +1,7 @@
-import 'package:ethical_shopping/category.dart';
 import 'package:flutter/material.dart';
+import 'models/category.dart';
 import 'listingPage.dart';
+
 
 void main() => runApp(MyApp());
 
