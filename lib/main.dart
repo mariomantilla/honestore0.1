@@ -10,15 +10,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ethical Shopping',
+      title: 'Honestore',
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.black,
-        accentColor: Colors.white,
+        accentColor: Colors.black,
+        highlightColor: Colors.amber,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all(Colors.white),
+            foregroundColor: MaterialStateProperty.all(Colors.black)
+          )
+        ),
         appBarTheme: AppBarTheme(
           brightness: Brightness.dark,
-        )
+        ),
       ),
       home: MyHomePage(),
     );
@@ -48,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
       "image": "mascotas.jpg",
       "text": "Mascotas"
     }, {
-      "image": "jugetes.jpg",
+      "image": "juguetes.jpg",
       "text": "Juguetes"
     }
   ];
@@ -84,6 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 MaterialPageRoute(
                     builder: (BuildContext context) => ListingPage(
                       search: '',
+                      availableCategories: categories,
                     )
                 )
             );
@@ -104,6 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     MaterialPageRoute(
                         builder: (BuildContext context) => ListingPage(
                           category: categories[index],
+                          availableCategories: categories,
                         )
                     )
                 );

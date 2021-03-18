@@ -28,6 +28,8 @@ dependencies:
   latlong: 0.6.1
   android_intent: ^2.0.0
   share: 2.0.1
+  flutter_markdown: ^0.6.0
+  photo_view: 0.11.1
   flutter:
     sdk: flutter
 
@@ -57,7 +59,8 @@ flutter:
     - images/categories/mascotas.jpg
     - images/categories/higiene.jpg
     - images/categories/alimentacion.jpg
-    - images/categories/jugetes.jpg
+    - images/categories/juguetes.jpg
+    - images/loading.gif
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

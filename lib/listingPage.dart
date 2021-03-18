@@ -10,16 +10,20 @@ import 'models/product.dart';
 import 'models/vendor.dart';
 import 'models/tag.dart';
 import 'vendorPage.dart';
+import 'widgets/filterSheet.dart';
 
 class ListingPage extends StatefulWidget {
 
   final Category category;
   final String search;
+  final List<Tag> tags;
+  final List<Category> availableCategories;
 
-  ListingPage({Key key, this.category, this.search}) : super(key: key);
+
+  ListingPage({Key key, this.category, this.search, this.tags, this.availableCategories}) : super(key: key);
 
   @override
-  _ListingPageState createState() => _ListingPageState(category: category, search: search);
+  _ListingPageState createState() => _ListingPageState(category: category, search: search, tags: tags??[], availableCategories: availableCategories);
 
 }
 
@@ -27,14 +31,19 @@ class _ListingPageState extends State<ListingPage> {
 
   Category category;
   String search = '';
+  List<Tag> tags = [];
   Future<List<Product>> products;
+  final List<Category> availableCategories;
+  List<Tag> availableTags = [];
 
-  _ListingPageState({this.category, this.search});
+  _ListingPageState({this.category, this.search, this.tags, this.availableCategories});
 
   Future<List<Product>> fetchProducts() async {
-    final searchFilter = ((search != '') & (search != null)) ? 'FIND(\'${search.toLowerCase()}\',LOWER({name}))' : '1';
+    final searchFilter = ((search != '') & (search != null)) ? 'OR(FIND(\'${search.toLowerCase()}\',LOWER({name})),FIND(\'${search.toLowerCase()}\',LOWER({description})))' : '1';
     final catFilter = category != null ? 'FIND(\'${category.id}\',{categories})' : '1';
-    final filters = 'AND(' + searchFilter + ',' + catFilter + ')';
+    final tagFilter = '1';//(tags.isNotEmpty) ? 'FIND(\'${tags[0].id}\',ARRAYJOIN({tags}))' : '1'; //(tags != null) & tags.isNotEmpty ? 'FIND(\'${tags[0].id}\',{tags})' : '1';
+    final filters = 'AND(' + searchFilter + ',' + catFilter + ',' + tagFilter + ')';
+    print(filters);
     final response = await http.get(
         Uri.https(
             'api.airtable.com',
@@ -49,15 +58,22 @@ class _ListingPageState extends State<ListingPage> {
       List data = jsonDecode(response.body)['records'];
       return data.map<Product>((element) {
         final fields = element['fields'];
+        //print(fields['tags']);
         return Product(
           id: element['id'],
           name: fields['name'],
+          description: fields['description'],
           categories: fields['categories'].map<int>((cat){return int.parse(cat);}).toList(),
-          image: NetworkImage(fields['picture'][0]['thumbnails']['large']['url']),
+          images: fields['picture'].map<NetworkImage>((data) {return NetworkImage(data['thumbnails']['large']['url']);}).toList(),
           price: Decimal.parse(fields['price'].toString()),
           vendor: Vendor(name: fields['vendorName'][0]),
           location: LatLng(fields['lat'], element['fields']['lon']),
-          tags: [for (int i = 0; i < fields['tags'].length ; i++) Tag(name: fields['tagsName'][i], description: fields['tagsDescription'][i])],
+          tags: [for (int i = 0; i < fields['tags'].length ; i++) Tag(
+            id: fields['tags'][i],
+            name: fields['tagsName'][i],
+            description: fields['tagsDescription'][i]
+          )],
+          rating: fields['rating']/1
         );
       }).toList();
     } else {
@@ -67,9 +83,60 @@ class _ListingPageState extends State<ListingPage> {
     }
   }
 
+  Future<List<Tag>> fetchTags() async {
+
+    final response = await http.get(
+        Uri.https(
+            'api.airtable.com',
+            '/v0/appft8jvxQwHFoE4f/Tags'
+        ),
+        headers: {
+          'Authorization': 'Bearer keyRE1c1hmHxqgebK'
+        }
+    );
+    if (response.statusCode == 200) {
+      List data = jsonDecode(response.body)['records'];
+      return data.map<Tag>((element) {
+        final fields = element['fields'];
+        print(fields['id'].runtimeType);
+        return Tag(
+          id: fields['id'],
+          name: fields['name'],
+          description: fields['description'],
+        );
+      }).toList();
+    } else {
+      print(response.statusCode);
+      print(response.body);
+      throw Exception('Failed to load tags');
+    }
+  }
+
+  _navigateAndDisplayFilters(BuildContext context) async {
+    // Navigator.push returns a Future that completes after calling
+    // Navigator.pop on the Selection Screen.
+    final newFilters = await showModalBottomSheet(
+        isScrollControlled: true,
+        context: context,
+        builder: (BuildContext bc) {
+          return FilterSheet(
+            category: category,
+            tags: tags,
+            availableCategories: availableCategories,
+            availableTags: availableTags,
+          );
+        }
+    );
+    setState(() {
+      category = newFilters['category'];
+      tags = newFilters['tags'];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     products = fetchProducts();
+    fetchTags().then((value) {availableTags = value;});
     return Scaffold(
       appBar: AppBar(
           iconTheme: IconThemeData(
@@ -93,33 +160,7 @@ class _ListingPageState extends State<ListingPage> {
             IconButton(
               icon: Icon(Icons.filter_alt, color: Colors.white),
               onPressed: () {
-                FocusScope.of(context).requestFocus(FocusNode());
-                showModalBottomSheet(
-                    context: context,
-                    builder: (BuildContext bc) {
-                      return Column(
-                        children: [
-                          Padding(padding: EdgeInsets.only(top: 10)),
-                          Text('Filtros',
-                              style: TextStyle(
-                                  fontSize: 25
-                              )
-                          ),
-                          Divider(),
-                          ListTile(
-                            title: Text('Categoría:'),
-                            subtitle: Chip(
-                              label: Text(widget.category != null ? widget.category.title : ''),
-                              deleteIcon: Icon(Icons.close_outlined),
-                              onDeleted: () {
-                                Navigator.pop(context);
-                              },
-                            ),
-                          )
-                        ],
-                      );
-                    }
-                );
+                _navigateAndDisplayFilters(context);
               },
             )
           ],
@@ -130,7 +171,13 @@ class _ListingPageState extends State<ListingPage> {
           if (snapshot.connectionState == ConnectionState.done) {
             if (snapshot.data.length == 0) {
               return Center(
-                  child: Text('Ops! Parece que no hemos encontrado por aquí.')
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.sentiment_dissatisfied_rounded, size: 64,),
+                    Text('Ops! Parece que no hemos encontrado nada con esos filtros.', style: TextStyle(fontSize: 24), textAlign: TextAlign.center,)
+                  ],
+                ),
               );
             }
             return GridView.builder(
@@ -148,8 +195,9 @@ class _ListingPageState extends State<ListingPage> {
                         child: Column(
                           children: [
                             SizedBox(
-                              child: Image(
-                                image: snapshot.data[index].image,
+                              child: FadeInImage(
+                                placeholder: AssetImage('images/loading.gif'),
+                                image: snapshot.data[index].images[0],
                                 fit: BoxFit.cover,
                               ),
                               width: double.infinity,
@@ -191,7 +239,7 @@ class _ListingPageState extends State<ListingPage> {
             );
           }
           // By default, show a loading spinner.
-          return Center(child: CircularProgressIndicator(backgroundColor: Colors.black,));
+          return Center(child: CircularProgressIndicator(backgroundColor: Colors.white,));
         },
       ),
     );

@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:android_intent/android_intent.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform;
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:share/share.dart';
 
 import 'models/product.dart';
 import 'models/tag.dart';
+import 'widgets/link.dart';
+import 'widgets/carousel.dart';
 
 class ProductPage extends StatefulWidget {
 
@@ -29,28 +33,35 @@ class _ProductPageState extends State<ProductPage> {
   Future<void> _tagInfoModal(Tag tag) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(tag.name),
           content: SingleChildScrollView(
             child: Text(tag.description),
           ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Entendido'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );
   }
 
+Widget carouselElement(image, fit, bool pinch) {
+  return pinch ? PhotoView(
+    imageProvider: image,
+  ) : Image(
+      fit: fit,
+      image: image
+  );
+}
+
+  Carousel picsCarousel({fit = BoxFit.fitWidth, bool pinch = false}) {
+    return Carousel(
+        elements: product.images.map((image) => carouselElement(image, fit, pinch)).toList()
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+
     final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
     return Scaffold(
       body: CustomScrollView(
@@ -59,10 +70,18 @@ class _ProductPageState extends State<ProductPage> {
             pinned: true,
             expandedHeight: 250.0,
             flexibleSpace: FlexibleSpaceBar(
-              background: Image(
-                  fit: BoxFit.cover,
-                  image: product.image
-              )
+              background: GestureDetector(
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => Scaffold(
+                            body: picsCarousel(fit: BoxFit.contain, pinch: true),
+                          )
+                      )
+                  );
+                },
+                child: picsCarousel(),
+              ),
             ),
             actions: <Widget>[
               IconButton(
@@ -83,23 +102,32 @@ class _ProductPageState extends State<ProductPage> {
           ),
           SliverList(
             delegate: SliverChildListDelegate([
-              ListTile(
-                title: Text(product.name, style: TextStyle(
-                  fontSize: 24
-                )),
+              Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(product.name,
+                          style: TextStyle(
+                              fontSize: 24
+                          )
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [for (int i=1; i<6; i++) Icon(i <= product.rating ? Icons.star : Icons.star_border, color: Colors.amber,)],
+                  ),
+                ]
               ),
               ListTile(
                 title: Row(
                   children: [
                     Text('Vendido por: '),
                     Expanded(
-                      child: InkWell(
-                        child: Text(product.vendor.name,
-                          style: TextStyle(
-                            color: Colors.blueGrey
-                          ),
-                        ),
-                        onTap: () {
+                      child: Link(
+                        text: product.vendor.name,
+                        action: () {
                           Navigator.push(context,
                               MaterialPageRoute(
                                   builder: (BuildContext context) => VendorPage(
@@ -108,7 +136,7 @@ class _ProductPageState extends State<ProductPage> {
                               )
                           );
                         },
-                     ),
+                      ),
                     ),
                     Text(f.format(product.price.toDouble()),
                       style: TextStyle(
@@ -120,16 +148,35 @@ class _ProductPageState extends State<ProductPage> {
               ),
               Divider(height: 0,),
               Padding(
+                padding: EdgeInsets.all(16),
+                child: MarkdownBody(
+                  styleSheet: MarkdownStyleSheet(
+                    textAlign: WrapAlignment.spaceEvenly
+                  ),
+                  selectable: true,
+                  data: product.description,
+                ),
+              ),
+              Divider(height: 0,),
+              Padding(
                 padding: EdgeInsets.only(top: 10, right: 15, bottom: 10, left: 15),
                 child: Wrap(
                   spacing: 5.0, // spacing between adjacent chips
                   runSpacing: 5.0,
                   children: product.tags.map((tag){
-                    return Chip(
-                      label: Text(tag.name), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      labelPadding: EdgeInsets.only(left: 4),
-                      deleteIcon: Icon(Icons.contact_support),
-                      onDeleted: () {
+                    return GestureDetector(
+                      child: Chip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(tag.name),
+                            Icon(Icons.contact_support)
+                          ],
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        labelPadding: EdgeInsets.only(left: 4),
+                      ),
+                      onTap: () {
                         _tagInfoModal(tag);
                       },
                     );
@@ -138,8 +185,8 @@ class _ProductPageState extends State<ProductPage> {
               ),
               Divider(height: 0,),
               ListTile(
-                leading: Icon(Icons.store_sharp),
-
+                leading: Icon(Icons.store_sharp, color: Colors.black,),
+                minLeadingWidth: 0,
                 title: Text('Disponible para recoger')
               ),
               Container(
@@ -197,10 +244,6 @@ class _ProductPageState extends State<ProductPage> {
                 ),
                 height: 200,
               ),
-              Container(
-                height: 3000,
-                child: Text('a')
-              )
             ]),
           ),
         ],
