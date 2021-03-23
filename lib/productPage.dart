@@ -1,4 +1,4 @@
-import 'package:ethical_shopping/vendorPage.dart';
+import 'vendorPage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';

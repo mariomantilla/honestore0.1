@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:ethical_shopping/productPage.dart';
+import 'productPage.dart';
 import 'package:intl/intl.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +41,11 @@ class _ListingPageState extends State<ListingPage> {
   Future<List<Product>> fetchProducts() async {
     final searchFilter = ((search != '') & (search != null)) ? 'OR(FIND(\'${search.toLowerCase()}\',LOWER({name})),FIND(\'${search.toLowerCase()}\',LOWER({description})))' : '1';
     final catFilter = category != null ? 'FIND(\'${category.id}\',{categories})' : '1';
-    final tagFilter = '1';//(tags.isNotEmpty) ? 'FIND(\'${tags[0].id}\',ARRAYJOIN({tags}))' : '1'; //(tags != null) & tags.isNotEmpty ? 'FIND(\'${tags[0].id}\',{tags})' : '1';
+    String tagFilter = '1';
+    if (tags.isNotEmpty) {
+      String tagsFormula = tags.map<String>((tag){return 'FIND(\'${tag.name}\',ARRAYJOIN({tagsName})),';}).toList().join();
+      tagFilter = 'OR(' + tagsFormula + '0)';
+    }
     final filters = 'AND(' + searchFilter + ',' + catFilter + ',' + tagFilter + ')';
     print(filters);
     final response = await http.get(
@@ -58,7 +62,6 @@ class _ListingPageState extends State<ListingPage> {
       List data = jsonDecode(response.body)['records'];
       return data.map<Product>((element) {
         final fields = element['fields'];
-        //print(fields['tags']);
         return Product(
           id: element['id'],
           name: fields['name'],
@@ -98,9 +101,8 @@ class _ListingPageState extends State<ListingPage> {
       List data = jsonDecode(response.body)['records'];
       return data.map<Tag>((element) {
         final fields = element['fields'];
-        print(fields['id'].runtimeType);
         return Tag(
-          id: fields['id'],
+          id: element['id'],
           name: fields['name'],
           description: fields['description'],
         );

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.ethical_shopping">
+    package="com.example.honestore">
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
          In most cases you can leave this as-is, but you if you want to provide
@@ -7,7 +7,7 @@
          FlutterApplication and put your custom class here. -->
     <application
         android:name="io.flutter.app.FlutterApplication"
-        android:label="BeYou"
+        android:label="Honestore"
         android:icon="@mipmap/logo">
         <activity
             android:name=".MainActivity"
@@ -42,8 +42,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
-                    android:host="matterbasket.com"
-                    android:pathPrefix="/productos" />
+                    android:host="honestore.com"
+                    android:pathPrefix="/" />
                 <!-- note that the leading "/" is required for pathPrefix-->
             </intent-filter>
         </activity>
