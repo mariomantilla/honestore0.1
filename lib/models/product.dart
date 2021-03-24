@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:latlong/latlong.dart';
 import 'package:location/location.dart';
 
-import 'vendor.dart';
-import 'tag.dart';
+import 'package:honestore/models/vendor.dart';
+import 'package:honestore/models/tag.dart';
 
 class Product {
   final String id;
