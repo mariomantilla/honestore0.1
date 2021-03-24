@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:honestore/secrets.env.dart';
 import 'package:intl/intl.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
@@ -63,7 +64,7 @@ class _ListingPageState extends State<ListingPage> {
             {'filterByFormula': filters}
         ),
         headers: {
-          'Authorization': 'Bearer keyRE1c1hmHxqgebK'
+          'Authorization': 'Bearer ' + airTableKey
         }
     );
     if (response.statusCode == 200) {
