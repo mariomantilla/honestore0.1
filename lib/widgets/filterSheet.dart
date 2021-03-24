@@ -1,9 +1,9 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:location/location.dart';
 
 import '../models/category.dart';
 
 import '../models/tag.dart';
-import 'package:flutter/material.dart';
 
 class FilterSheet extends StatefulWidget {
 
@@ -11,11 +11,12 @@ class FilterSheet extends StatefulWidget {
   final List<Tag> tags;
   final List<Category> availableCategories;
   final List<Tag> availableTags;
+  final LocationData currentLocation;
 
-  FilterSheet({Key key, this.category, this.tags, this.availableCategories, this.availableTags}) : super(key: key);
+  FilterSheet({Key key, this.category, this.tags, this.availableCategories, this.availableTags, this.currentLocation}) : super(key: key);
 
   @override
-  _FilterSheetState createState() => _FilterSheetState(category: category, tags: tags, availableCategories: availableCategories, availableTags: availableTags);
+  _FilterSheetState createState() => _FilterSheetState(category: category, tags: tags, availableCategories: availableCategories, availableTags: availableTags, currentLocation: currentLocation);
 }
 
 class _FilterSheetState extends State<FilterSheet> {
@@ -25,8 +26,9 @@ class _FilterSheetState extends State<FilterSheet> {
   final List<Category> availableCategories;
   List<Tag> availableTags = [];
   TextEditingController _autocompleteTextEditController;
+  LocationData currentLocation;
 
-  _FilterSheetState({this.category, this.tags, this.availableCategories, this.availableTags});
+  _FilterSheetState({this.category, this.tags, this.availableCategories, this.availableTags, this.currentLocation});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +88,7 @@ class _FilterSheetState extends State<FilterSheet> {
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.only(right: 16, left: 16),
           child: Autocomplete<Tag>(
             displayStringForOption: (tag) => tag.name,
             fieldViewBuilder: (BuildContext context, TextEditingController textEditingController, FocusNode focusNode, VoidCallback onFieldSubmitted) {
@@ -116,6 +118,14 @@ class _FilterSheetState extends State<FilterSheet> {
                 tags.add(tag);
               });
             },
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: ListTile(
+            leading: Icon(Icons.location_on_outlined),
+            minLeadingWidth: 0,
+            title: Text('Cerca de: ' + (currentLocation != null ? 'Localización actual' : '?')),
           ),
         ),
         Padding(

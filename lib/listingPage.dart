@@ -1,16 +1,17 @@
 import 'dart:convert';
-import 'productPage.dart';
 import 'package:intl/intl.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong/latlong.dart';
+import 'package:location/location.dart';
 import 'models/category.dart';
 import 'models/product.dart';
 import 'models/vendor.dart';
 import 'models/tag.dart';
-import 'vendorPage.dart';
 import 'widgets/filterSheet.dart';
+import 'productPage.dart';
+import 'vendorPage.dart';
 
 class ListingPage extends StatefulWidget {
 
@@ -35,10 +36,18 @@ class _ListingPageState extends State<ListingPage> {
   Future<List<Product>> products;
   final List<Category> availableCategories;
   List<Tag> availableTags = [];
+  Location location = Location();
+  LocationData currentLocation;
+  int _selectedIndex = 0;
 
-  _ListingPageState({this.category, this.search, this.tags, this.availableCategories});
+  _ListingPageState({this.category, this.search, this.tags, this.availableCategories}) {
+    getLoc();
+  }
 
   Future<List<Product>> fetchProducts() async {
+    if (currentLocation == null) {
+      return [];
+    }
     final searchFilter = ((search != '') & (search != null)) ? 'OR(FIND(\'${search.toLowerCase()}\',LOWER({name})),FIND(\'${search.toLowerCase()}\',LOWER({description})))' : '1';
     final catFilter = category != null ? 'FIND(\'${category.id}\',{categories})' : '1';
     String tagFilter = '1';
@@ -47,7 +56,6 @@ class _ListingPageState extends State<ListingPage> {
       tagFilter = 'OR(' + tagsFormula + '0)';
     }
     final filters = 'AND(' + searchFilter + ',' + catFilter + ',' + tagFilter + ')';
-    print(filters);
     final response = await http.get(
         Uri.https(
             'api.airtable.com',
@@ -76,7 +84,8 @@ class _ListingPageState extends State<ListingPage> {
             name: fields['tagsName'][i],
             description: fields['tagsDescription'][i]
           )],
-          rating: fields['rating']/1
+          rating: fields['rating']/1,
+          targetLocation: currentLocation
         );
       }).toList();
     } else {
@@ -114,6 +123,34 @@ class _ListingPageState extends State<ListingPage> {
     }
   }
 
+  getLoc() async {
+    bool _serviceEnabled;
+    PermissionStatus _permissionGranted;
+
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return;
+      }
+    }
+
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    LocationData _currentLocation = await location.getLocation();
+    setState(() {
+      currentLocation = _currentLocation;
+    });
+
+  }
+
+
   _navigateAndDisplayFilters(BuildContext context) async {
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
@@ -126,17 +163,88 @@ class _ListingPageState extends State<ListingPage> {
             tags: tags,
             availableCategories: availableCategories,
             availableTags: availableTags,
+            currentLocation: currentLocation,
           );
         }
     );
+    if (newFilters != null) {
+      setState(() {
+        category = newFilters['category'];
+        tags = newFilters['tags'];
+      });
+    }
+  }
+
+  void _onTabIconTapped(int index) {
     setState(() {
-      category = newFilters['category'];
-      tags = newFilters['tags'];
+      _selectedIndex = index;
     });
+  }
+
+  Widget gridBuilder(snapshot) {
+    return GridView.builder(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 250,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 1,
+            mainAxisSpacing: 5
+        ),
+        itemCount: snapshot.data.length,
+        itemBuilder: (BuildContext ctx, index) {
+          final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+          return InkWell(
+            child: Card(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      child: FadeInImage(
+                        placeholder: AssetImage('images/loading.gif'),
+                        image: snapshot.data[index].images[0],
+                        fit: BoxFit.cover,
+                      ),
+                      width: double.infinity,
+                      height: 170,
+                    ),
+                    ListTile(
+                      title: Text(f.format(snapshot.data[index].price.toDouble())),
+                      subtitle: InkWell(
+                        child: Text(snapshot.data[index].vendor.name),
+                        onTap: () {
+                          Navigator.push(context,
+                              MaterialPageRoute(
+                                  builder: (BuildContext context) => VendorPage(
+                                    vendor: snapshot.data[index].vendor,
+                                  )
+                              )
+                          );
+                        },
+                      ),
+                      trailing: Text(snapshot.data[index].distance.toString() + ' km'),
+                    )
+                  ],
+                )
+            ),
+            onTap: () {
+              Navigator.push(context,
+                  MaterialPageRoute(
+                      builder: (BuildContext context) => ProductPage(
+                        product: snapshot.data[index],
+                      )
+                  )
+              );
+            },
+          );
+        }
+    );
+  }
+
+  Widget mapBuilder(snapshot) {
+    return Text('Map here!');
   }
 
   @override
   Widget build(BuildContext context) {
+    List productViewBuilder = [gridBuilder, mapBuilder];
     products = fetchProducts();
     fetchTags().then((value) {availableTags = value;});
     return Scaffold(
@@ -172,6 +280,9 @@ class _ListingPageState extends State<ListingPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             if (snapshot.data.length == 0) {
+              if (currentLocation == null) {
+                return Center(child: CircularProgressIndicator(backgroundColor: Colors.white,));
+              }
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -182,59 +293,7 @@ class _ListingPageState extends State<ListingPage> {
                 ),
               );
             }
-            return GridView.builder(
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 250,
-                    childAspectRatio: 2 / 3,
-                    crossAxisSpacing: 1,
-                    mainAxisSpacing: 5
-                ),
-                itemCount: snapshot.data.length,
-                itemBuilder: (BuildContext ctx, index) {
-                  final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
-                  return InkWell(
-                    child: Card(
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              child: FadeInImage(
-                                placeholder: AssetImage('images/loading.gif'),
-                                image: snapshot.data[index].images[0],
-                                fit: BoxFit.cover,
-                              ),
-                              width: double.infinity,
-                              height: 170,
-                            ),
-                            ListTile(
-                              title: Text(f.format(snapshot.data[index].price.toDouble())),
-                              subtitle: InkWell(
-                                child: Text(snapshot.data[index].vendor.name),
-                                onTap: () {
-                                  Navigator.push(context,
-                                      MaterialPageRoute(
-                                          builder: (BuildContext context) => VendorPage(
-                                            vendor: snapshot.data[index].vendor,
-                                          )
-                                      )
-                                  );
-                                },
-                              ),
-                            )
-                          ],
-                        )
-                    ),
-                    onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(
-                              builder: (BuildContext context) => ProductPage(
-                                product: snapshot.data[index],
-                              )
-                          )
-                      );
-                    },
-                  );
-                }
-            );
+            return productViewBuilder[_selectedIndex](snapshot);
           } else if (snapshot.hasError) {
             return Center(
               child: Text(snapshot.error.toString())
@@ -243,6 +302,23 @@ class _ListingPageState extends State<ListingPage> {
           // By default, show a loading spinner.
           return Center(child: CircularProgressIndicator(backgroundColor: Colors.white,));
         },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: '',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onTabIconTapped,
       ),
     );
   }
