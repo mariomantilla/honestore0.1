@@ -1,9 +1,8 @@
-import 'dart:convert';
-import 'package:honestore/secrets.env.dart';
+import 'package:honestore/models/selectedTab.dart';
+import 'package:honestore/services/airtable.dart';
 import 'package:intl/intl.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong/latlong.dart';
 import 'package:location/location.dart';
 import 'package:honestore/models/category.dart';
@@ -13,27 +12,37 @@ import 'package:honestore/models/tag.dart';
 import 'package:honestore/widgets/filterSheet.dart';
 import 'package:honestore/screens/productPage.dart';
 import 'package:honestore/screens/vendorPage.dart';
+import 'package:provider/provider.dart';
+
+
+class ListingFilters {
+
+  Category category;
+  String search;
+  List<Tag> tags;
+
+  ListingFilters({this.category, this.search = '', this.tags = const []});
+
+}
 
 class ListingPage extends StatefulWidget {
 
-  final Category category;
-  final String search;
-  final List<Tag> tags;
+  static const routeName = '/listing';
+
+  final ListingFilters filters;
   final List<Category> availableCategories;
 
 
-  ListingPage({Key key, this.category, this.search, this.tags, this.availableCategories}) : super(key: key);
+  ListingPage({Key key, this.filters, this.availableCategories}) : super(key: key);
 
   @override
-  _ListingPageState createState() => _ListingPageState(category: category, search: search, tags: tags??[], availableCategories: availableCategories);
+  _ListingPageState createState() => _ListingPageState(filters: filters, availableCategories: availableCategories);
 
 }
 
 class _ListingPageState extends State<ListingPage> {
 
-  Category category;
-  String search = '';
-  List<Tag> tags = [];
+  ListingFilters filters;
   Future<List<Product>> products;
   final List<Category> availableCategories;
   List<Tag> availableTags = [];
@@ -41,14 +50,20 @@ class _ListingPageState extends State<ListingPage> {
   LocationData currentLocation;
   int _selectedIndex = 0;
 
-  _ListingPageState({this.category, this.search, this.tags, this.availableCategories}) {
+  _ListingPageState({this.filters, this.availableCategories}) {
     getLoc();
   }
 
   Future<List<Product>> fetchProducts() async {
+    
     if (currentLocation == null) {
       return [];
     }
+
+    var search = filters.search;
+    var category = filters.category;
+    var tags = filters.tags;
+
     final searchFilter = ((search != '') & (search != null)) ? 'OR(FIND(\'${search.toLowerCase()}\',LOWER({name})),FIND(\'${search.toLowerCase()}\',LOWER({description})))' : '1';
     final catFilter = category != null ? 'FIND(\'${category.id}\',{categories})' : '1';
     String tagFilter = '1';
@@ -56,72 +71,44 @@ class _ListingPageState extends State<ListingPage> {
       String tagsFormula = tags.map<String>((tag){return 'FIND(\'${tag.name}\',ARRAYJOIN({tagsName})),';}).toList().join();
       tagFilter = 'OR(' + tagsFormula + '0)';
     }
-    final filters = 'AND(' + searchFilter + ',' + catFilter + ',' + tagFilter + ')';
-    final response = await http.get(
-        Uri.https(
-            'api.airtable.com',
-            '/v0/appft8jvxQwHFoE4f/Products',
-            {'filterByFormula': filters}
-        ),
-        headers: {
-          'Authorization': 'Bearer ' + airTableKey
-        }
-    );
-    if (response.statusCode == 200) {
-      List data = jsonDecode(response.body)['records'];
-      return data.map<Product>((element) {
-        final fields = element['fields'];
-        return Product(
-          id: element['id'],
-          name: fields['name'],
-          description: fields['description'],
-          categories: fields['categories'].map<int>((cat){return int.parse(cat);}).toList(),
-          images: fields['picture'].map<NetworkImage>((data) {return NetworkImage(data['thumbnails']['large']['url']);}).toList(),
-          price: Decimal.parse(fields['price'].toString()),
-          vendor: Vendor(name: fields['vendorName'][0]),
-          location: LatLng(fields['lat'], element['fields']['lon']),
-          tags: [for (int i = 0; i < fields['tags'].length ; i++) Tag(
-            id: fields['tags'][i],
-            name: fields['tagsName'][i],
-            description: fields['tagsDescription'][i]
-          )],
-          rating: fields['rating']/1,
-          targetLocation: currentLocation
-        );
-      }).toList();
-    } else {
-      print(response.statusCode);
-      print(response.body);
-      throw Exception('Failed to load products');
-    }
+    final filtersString = 'AND(' + searchFilter + ',' + catFilter + ',' + tagFilter + ')';
+
+    List data = await Airtable().getRecords('Products', {'filterByFormula': filtersString});
+    return data.map<Product>((element) {
+      final fields = element['fields'];
+      return Product(
+        id: element['id'],
+        name: fields['name'],
+        description: fields['description'],
+        categories: fields['categories'].map<int>((cat){return int.parse(cat);}).toList(),
+        images: fields['picture'].map<NetworkImage>((data) {return NetworkImage(data['thumbnails']['large']['url']);}).toList(),
+        price: Decimal.parse(fields['price'].toString()),
+        vendor: Vendor(name: fields['vendorName'][0]),
+        location: LatLng(fields['lat'], element['fields']['lon']),
+        tags: [for (int i = 0; i < fields['tags'].length ; i++) Tag(
+          id: fields['tags'][i],
+          name: fields['tagsName'][i],
+          description: fields['tagsDescription'][i]
+        )],
+        rating: fields['rating']/1,
+        targetLocation: currentLocation
+      );
+    }).toList();
+
   }
 
   Future<List<Tag>> fetchTags() async {
 
-    final response = await http.get(
-        Uri.https(
-            'api.airtable.com',
-            '/v0/appft8jvxQwHFoE4f/Tags'
-        ),
-        headers: {
-          'Authorization': 'Bearer keyRE1c1hmHxqgebK'
-        }
-    );
-    if (response.statusCode == 200) {
-      List data = jsonDecode(response.body)['records'];
-      return data.map<Tag>((element) {
-        final fields = element['fields'];
-        return Tag(
-          id: element['id'],
-          name: fields['name'],
-          description: fields['description'],
-        );
-      }).toList();
-    } else {
-      print(response.statusCode);
-      print(response.body);
-      throw Exception('Failed to load tags');
-    }
+    List data = await Airtable().getRecords('Tags');
+    return data.map<Tag>((element) {
+      final fields = element['fields'];
+      return Tag(
+        id: element['id'],
+        name: fields['name'],
+        description: fields['description'],
+      );
+    }).toList();
+
   }
 
   getLoc() async {
@@ -151,7 +138,6 @@ class _ListingPageState extends State<ListingPage> {
 
   }
 
-
   _navigateAndDisplayFilters(BuildContext context) async {
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
@@ -160,8 +146,8 @@ class _ListingPageState extends State<ListingPage> {
         context: context,
         builder: (BuildContext bc) {
           return FilterSheet(
-            category: category,
-            tags: tags,
+            category: filters.category,
+            tags: filters.tags,
             availableCategories: availableCategories,
             availableTags: availableTags,
             currentLocation: currentLocation,
@@ -170,16 +156,15 @@ class _ListingPageState extends State<ListingPage> {
     );
     if (newFilters != null) {
       setState(() {
-        category = newFilters['category'];
-        tags = newFilters['tags'];
+        filters.category = newFilters['category'];
+        filters.tags = newFilters['tags'];
       });
     }
   }
 
   void _onTabIconTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    var selectedTab = context.read<SelectedTab>();
+    selectedTab.changeTab(index);
   }
 
   Widget gridBuilder(snapshot) {
@@ -240,6 +225,12 @@ class _ListingPageState extends State<ListingPage> {
 
   @override
   Widget build(BuildContext context) {
+    var index = context.select<SelectedTab, int>(
+      // Here, we are only interested in the item at [index]. We don't care
+      // about any other change.
+          (s) => s.selectedTab,
+    );
+    print(index);
     List productViewBuilder = [gridBuilder, mapBuilder];
     products = fetchProducts();
     fetchTags().then((value) {availableTags = value;});
@@ -252,13 +243,13 @@ class _ListingPageState extends State<ListingPage> {
             decoration: InputDecoration(
               contentPadding: EdgeInsets.all(1),
               enabledBorder: InputBorder.none,
-              hintText: category != null ? 'Buscar en '+ category.title + '...' : 'Buscar...',
+              hintText: filters.category != null ? 'Buscar en '+ filters.category.title + '...' : 'Buscar...',
               hintStyle: TextStyle(color: Colors.white,),
             ),
             style: TextStyle(color: Colors.white, fontSize: 18),
             onSubmitted: (String text) {
               setState(() {
-                search = text;
+                filters.search = text;
               });
             },
           ),
@@ -289,7 +280,8 @@ class _ListingPageState extends State<ListingPage> {
                 ),
               );
             }
-            return productViewBuilder[_selectedIndex](snapshot);
+
+            return productViewBuilder[index](snapshot);
           } else if (snapshot.hasError) {
             return Center(
               child: Text(snapshot.error.toString())
@@ -312,10 +304,11 @@ class _ListingPageState extends State<ListingPage> {
             label: '',
           ),
         ],
-        currentIndex: _selectedIndex,
+        currentIndex: index,
         selectedItemColor: Colors.amber[800],
         onTap: _onTabIconTapped,
       ),
     );
   }
 }
+

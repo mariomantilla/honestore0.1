@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:honestore/screens/listingPage.dart';
+import 'package:provider/provider.dart';
+import 'models/selectedTab.dart';
 import 'styles/appTheme.dart';
 import 'package:honestore/screens/vendorPage.dart';
 import 'package:honestore/screens/productPage.dart';
@@ -11,16 +14,40 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => SelectedTab(),
+      child: MaterialApp(
+        title: 'Honestore',
+        theme: appTheme,
+        initialRoute: '/',
+        onGenerateRoute: (RouteSettings settings) {
+          var routes = <String, WidgetBuilder>{
+            HomePage.routeName: (ctx) => HomePage(),
+            ProductPage.routeName: (ctx) => ProductPage(),
+            VendorPage.routeName: (ctx) => VendorPage(),
+            ListingPage.routeName: (ctx) => ListingPage(filters: settings.arguments),
+          };
+          WidgetBuilder builder = routes[settings.name];
+          return MaterialPageRoute(builder: (ctx) => builder(ctx));
+        },
+      ),
+    );
     return MaterialApp(
       title: 'Honestore',
       theme: appTheme,
       initialRoute: '/',
-      routes: {
-        HomePage.routeName: (context) => HomePage(),
-        ProductPage.routeName: (context) => ProductPage(),
-        VendorPage.routeName: (context) => VendorPage(),
+      onGenerateRoute: (RouteSettings settings) {
+        var routes = <String, WidgetBuilder>{
+          HomePage.routeName: (ctx) => HomePage(),
+          ProductPage.routeName: (ctx) => ProductPage(),
+          VendorPage.routeName: (ctx) => VendorPage(),
+          ListingPage.routeName: (ctx) => ListingPage(filters: settings.arguments),
+        };
+        WidgetBuilder builder = routes[settings.name];
+        return MaterialPageRoute(builder: (ctx) => builder(ctx));
       },
     );
   }
 }
+
 

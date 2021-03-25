@@ -64,7 +64,6 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(context,
                 MaterialPageRoute(
                     builder: (BuildContext context) => ListingPage(
-                      search: '',
                       availableCategories: categories,
                     )
                 )
@@ -85,7 +84,7 @@ class _HomePageState extends State<HomePage> {
                 Navigator.push(context,
                     MaterialPageRoute(
                         builder: (BuildContext context) => ListingPage(
-                          category: categories[index],
+                          filters: ListingFilters(category: categories[index]),
                           availableCategories: categories,
                         )
                     )

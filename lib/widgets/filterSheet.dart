@@ -115,6 +115,9 @@ class _FilterSheetState extends State<FilterSheet> {
             onSelected: (Tag tag) {
               setState(() {
                 _autocompleteTextEditController.clear();
+                if (tags.isEmpty) {
+                  tags = [];
+                }
                 tags.add(tag);
               });
             },
