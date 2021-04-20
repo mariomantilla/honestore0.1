@@ -1,3 +1,4 @@
+import 'package:flutter_map/flutter_map.dart';
 import 'package:honestore/models/selectedTab.dart';
 import 'package:honestore/services/airtable.dart';
 import 'package:intl/intl.dart';
@@ -30,13 +31,11 @@ class ListingPage extends StatefulWidget {
   static const routeName = '/listing';
 
   final ListingFilters filters;
-  final List<Category> availableCategories;
 
-
-  ListingPage({Key key, this.filters, this.availableCategories}) : super(key: key);
+  ListingPage({Key key, this.filters}) : super(key: key);
 
   @override
-  _ListingPageState createState() => _ListingPageState(filters: filters, availableCategories: availableCategories);
+  _ListingPageState createState() => _ListingPageState(filters: filters);
 
 }
 
@@ -44,18 +43,14 @@ class _ListingPageState extends State<ListingPage> {
 
   ListingFilters filters;
   Future<List<Product>> products;
-  final List<Category> availableCategories;
   List<Tag> availableTags = [];
-  Location location = Location();
+  //Location location = Location();
   LocationData currentLocation;
-  int _selectedIndex = 0;
 
-  _ListingPageState({this.filters, this.availableCategories}) {
-    getLoc();
-  }
+  _ListingPageState({this.filters});
 
   Future<List<Product>> fetchProducts() async {
-    
+
     if (currentLocation == null) {
       return [];
     }
@@ -111,33 +106,6 @@ class _ListingPageState extends State<ListingPage> {
 
   }
 
-  getLoc() async {
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
-
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
-        return;
-      }
-    }
-
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        return;
-      }
-    }
-
-    LocationData _currentLocation = await location.getLocation();
-    setState(() {
-      currentLocation = _currentLocation;
-    });
-
-  }
-
   _navigateAndDisplayFilters(BuildContext context) async {
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
@@ -148,7 +116,6 @@ class _ListingPageState extends State<ListingPage> {
           return FilterSheet(
             category: filters.category,
             tags: filters.tags,
-            availableCategories: availableCategories,
             availableTags: availableTags,
             currentLocation: currentLocation,
           );
@@ -162,76 +129,11 @@ class _ListingPageState extends State<ListingPage> {
     }
   }
 
-  void _onTabIconTapped(int index) {
-    var selectedTab = context.read<SelectedTab>();
-    selectedTab.changeTab(index);
-  }
-
-  Widget gridBuilder(snapshot) {
-    return GridView.builder(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 250,
-            childAspectRatio: 2 / 3,
-            crossAxisSpacing: 1,
-            mainAxisSpacing: 5
-        ),
-        itemCount: snapshot.data.length,
-        itemBuilder: (BuildContext ctx, index) {
-          final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
-          return InkWell(
-            child: Card(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      child: FadeInImage(
-                        placeholder: AssetImage('images/loading.gif'),
-                        image: snapshot.data[index].images[0],
-                        fit: BoxFit.cover,
-                      ),
-                      width: double.infinity,
-                      height: 170,
-                    ),
-                    ListTile(
-                      title: Text(f.format(snapshot.data[index].price.toDouble())),
-                      subtitle: InkWell(
-                        child: Text(snapshot.data[index].vendor.name),
-                        onTap: () {
-                          Navigator.pushNamed(
-                              context,
-                              VendorPage.routeName,
-                              arguments: snapshot.data[index].vendor
-                          );
-                        },
-                      ),
-                      trailing: Text(snapshot.data[index].distance.toString() + ' km'),
-                    )
-                  ],
-                )
-            ),
-            onTap: () {
-              Navigator.pushNamed(context,
-                  ProductPage.routeName,
-                  arguments: snapshot.data[index],
-              );
-            },
-          );
-        }
-    );
-  }
-
-  Widget mapBuilder(snapshot) {
-    return Text('Map here!');
-  }
-
   @override
   Widget build(BuildContext context) {
-    var index = context.select<SelectedTab, int>(
-      // Here, we are only interested in the item at [index]. We don't care
-      // about any other change.
-          (s) => s.selectedTab,
+    currentLocation = context.select<SelectedTab, LocationData>(
+          (s) => s.currentLocation,
     );
-    print(index);
-    List productViewBuilder = [gridBuilder, mapBuilder];
     products = fetchProducts();
     fetchTags().then((value) {availableTags = value;});
     return Scaffold(
@@ -281,7 +183,7 @@ class _ListingPageState extends State<ListingPage> {
               );
             }
 
-            return productViewBuilder[index](snapshot);
+            return ResultsWidget(snapshot.data, LatLng(currentLocation.latitude, currentLocation.longitude));
           } else if (snapshot.hasError) {
             return Center(
               child: Text(snapshot.error.toString())
@@ -291,24 +193,181 @@ class _ListingPageState extends State<ListingPage> {
           return Center(child: CircularProgressIndicator(backgroundColor: Colors.white,));
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: '',
-          ),
-        ],
-        currentIndex: index,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onTabIconTapped,
-      ),
+      bottomNavigationBar: BottomTabsWidget(),
+    );
+  }
+}
+class BottomTabsWidget extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context) {
+    var index = context.select<SelectedTab, int>(
+          (s) => s.selectedTab,
+    );
+    return BottomNavigationBar(
+      showSelectedLabels: false,
+      showUnselectedLabels: false,
+      items: const <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          icon: Icon(Icons.grid_view),
+          label: '',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map),
+          label: '',
+        ),
+      ],
+      currentIndex: index,
+      selectedItemColor: Colors.amber[800],
+      onTap: (int index) {
+        context.read<SelectedTab>().changeTab(index);
+      },
     );
   }
 }
 
+class ResultsWidget extends StatefulWidget {
+
+  final List<Product> products;
+  final LatLng location;
+
+  ResultsWidget(this.products, this.location);
+
+  @override
+  ResultsWidgetState createState() => ResultsWidgetState(products, location);
+
+}
+
+class ResultsWidgetState extends State<ResultsWidget> {
+
+  final List<Product> products;
+  final LatLng location;
+  MapController _controller = MapController();
+
+  ResultsWidgetState(this.products, this.location);
+
+  Widget gridView(BuildContext context) {
+    return GridView.builder(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 250,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 1,
+            mainAxisSpacing: 5
+        ),
+        itemCount: products.length,
+        itemBuilder: (BuildContext ctx, index) {
+          final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+          return InkWell(
+            child: Card(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      child: FadeInImage(
+                        placeholder: AssetImage('images/loading.gif'),
+                        image: products[index].images[0],
+                        fit: BoxFit.cover,
+                      ),
+                      width: double.infinity,
+                      height: 170,
+                    ),
+                    ListTile(
+                      title: Text(f.format(products[index].price.toDouble())),
+                      subtitle: InkWell(
+                        child: Text(products[index].vendor.name),
+                        onTap: () {
+                          Navigator.pushNamed(
+                              context,
+                              VendorPage.routeName,
+                              arguments: products[index].vendor
+                          );
+                        },
+                      ),
+                      trailing: Text(products[index].displayDistance()),
+                    )
+                  ],
+                )
+            ),
+            onTap: () {
+              print(products[index]);
+              Navigator.pushNamed(context,
+                ProductPage.routeName,
+                arguments: products[index],
+              );
+            },
+          );
+        }
+    );
+  }
+
+  Widget mapView(BuildContext context) {
+    List<Marker> markers = products.map<Marker>((product){return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: product.location,
+      builder: (ctx) =>
+        Container(
+          child: Icon(Icons.place),
+        ),
+    );}).toList();
+    markers.add(Marker(
+      width: 80.0,
+      height: 80.0,
+      point: location,
+      builder: (ctx) =>
+          Container(
+            child: Icon(Icons.my_location, color: Colors.blue, size: 16, ),
+          ),
+    ));
+    FlutterMap map = FlutterMap(
+      options: MapOptions(
+          center: location,
+          zoom: 14.0,
+          interactiveFlags: InteractiveFlag.all,
+          onTap: (LatLng position) {print(position);},
+          controller: _controller
+      ),
+      layers: [
+        TileLayerOptions(
+            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            subdomains: ['a', 'b', 'c']
+        ),
+        MarkerLayerOptions(
+          markers: markers,
+        ),
+      ],
+      mapController: _controller
+    );
+    return Stack(children: [
+      map,
+      Positioned(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+          ),
+          child: IconButton(
+              icon: Icon(Icons.my_location, color: Colors.black,),
+              onPressed: () {
+                if (_controller.ready) {
+                  _controller.move(location, 14.0);
+                }
+              }
+          ),
+        ),
+        bottom: 40,
+        right: 20,
+      )
+    ],);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var index = context.select<SelectedTab, int>(
+      // Here, we are only interested in the item at [index]. We don't care
+      // about any other change.
+          (s) => s.selectedTab,
+    );
+    final widgets = [gridView, mapView];
+    return widgets[index](context);
+  }
+}

@@ -18,12 +18,12 @@ class Product {
   final LatLng location;
   final List<Tag> tags;
   final double rating;
-  int distance;
+  Decimal distance;
 
   Product({this.id, this.name, this.description, this.categories, this.images, this.price, this.vendor, this.location, this.tags, this.rating, LocationData targetLocation}) {
-    this.distance = 0;
+    this.distance = Decimal.zero;
     if (targetLocation != null) {
-      this.distance = calculateDistance(targetLocation.latitude, targetLocation.longitude, location.latitude, location.longitude).round();
+      this.distance = Decimal.parse(calculateDistance(targetLocation.latitude, targetLocation.longitude, location.latitude, location.longitude).toStringAsFixed(3));
     }
   }
 
@@ -34,6 +34,10 @@ class Product {
         c(lat1 * p) * c(lat2 * p) *
             (1 - c((lon2 - lon1) * p))/2;
     return 12742 * asin(sqrt(a));
+  }
+
+  String displayDistance() {
+    return (distance > Decimal.one) ? distance.toStringAsFixed(1) + ' km' : (distance*Decimal.parse('1000')).toStringAsFixed(0) + ' m';
   }
 
 }

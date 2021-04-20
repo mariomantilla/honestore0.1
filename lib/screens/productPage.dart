@@ -16,6 +16,9 @@ import 'package:honestore/widgets/link.dart';
 
 class ProductPage extends StatelessWidget {
   static const routeName = '/product';
+  final Product product;
+
+  ProductPage({this.product});
 
   Future<void> _tagInfoModal(context, Tag tag) async {
     return showDialog<void>(
@@ -34,7 +37,6 @@ class ProductPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final Product product = ModalRoute.of(context).settings.arguments;
     final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
 
     return Scaffold(

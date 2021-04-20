@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:honestore/screens/listingPage.dart';
+import 'package:honestore/screens/locationSelectorPage.dart';
 import 'package:provider/provider.dart';
 import 'models/selectedTab.dart';
 import 'styles/appTheme.dart';
@@ -23,29 +24,15 @@ class MyApp extends StatelessWidget {
         onGenerateRoute: (RouteSettings settings) {
           var routes = <String, WidgetBuilder>{
             HomePage.routeName: (ctx) => HomePage(),
-            ProductPage.routeName: (ctx) => ProductPage(),
+            ProductPage.routeName: (ctx) => ProductPage(product: settings.arguments),
             VendorPage.routeName: (ctx) => VendorPage(),
             ListingPage.routeName: (ctx) => ListingPage(filters: settings.arguments),
+            LocationSelectorPage.routeName: (ctx) => LocationSelectorPage(settings.arguments),
           };
           WidgetBuilder builder = routes[settings.name];
           return MaterialPageRoute(builder: (ctx) => builder(ctx));
         },
       ),
-    );
-    return MaterialApp(
-      title: 'Honestore',
-      theme: appTheme,
-      initialRoute: '/',
-      onGenerateRoute: (RouteSettings settings) {
-        var routes = <String, WidgetBuilder>{
-          HomePage.routeName: (ctx) => HomePage(),
-          ProductPage.routeName: (ctx) => ProductPage(),
-          VendorPage.routeName: (ctx) => VendorPage(),
-          ListingPage.routeName: (ctx) => ListingPage(filters: settings.arguments),
-        };
-        WidgetBuilder builder = routes[settings.name];
-        return MaterialPageRoute(builder: (ctx) => builder(ctx));
-      },
     );
   }
 }
