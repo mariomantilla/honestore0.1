@@ -1,11 +1,9 @@
-import 'package:flutter/cupertino.dart';
-import 'product.dart';
+import 'package:flutter/material.dart';
 
 class Category {
-  final int id;
-  final String title;
+  final String id;
+  final String name;
   final ImageProvider image;
-  List<Product> products = [];
 
-  Category(this.id, this.title, this.image, this.products);
+  Category(this.id, this.name, this.image);
 }

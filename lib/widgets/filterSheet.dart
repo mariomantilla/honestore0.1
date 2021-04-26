@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:honestore/models/selectedTab.dart';
 import 'package:honestore/screens/locationSelectorPage.dart';
-import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 
 import '../models/category.dart';
@@ -12,25 +11,20 @@ class FilterSheet extends StatefulWidget {
 
   final Category category;
   final List<Tag> tags;
-  final List<Tag> availableTags;
-  final LocationData currentLocation;
 
-  FilterSheet({Key key, this.category, this.tags, this.availableTags, this.currentLocation}) : super(key: key);
+  FilterSheet({Key key, this.category, this.tags}) : super(key: key);
 
   @override
-  _FilterSheetState createState() => _FilterSheetState(category: category, tags: tags, availableTags: availableTags, currentLocation: currentLocation);
+  _FilterSheetState createState() => _FilterSheetState(category: category, tags: tags);
 }
 
 class _FilterSheetState extends State<FilterSheet> {
 
   Category category;
   List<Tag> tags = [];
-  final List<Category> availableCategories = [];
-  List<Tag> availableTags = [];
   TextEditingController _autocompleteTextEditController;
-  LocationData currentLocation;
 
-  _FilterSheetState({this.category, this.tags, this.availableTags, this.currentLocation});
+  _FilterSheetState({this.category, this.tags});
 
   Future<void> _locationModal(context) async {
     return showDialog<void>(
@@ -68,6 +62,9 @@ class _FilterSheetState extends State<FilterSheet> {
     var availableCategories = context.select<SelectedTab, List<Category>>(
           (s) => s.categories,
     );
+    var availableTags = context.select<SelectedTab, List<Tag>>(
+          (s) => s.tags,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -91,7 +88,7 @@ class _FilterSheetState extends State<FilterSheet> {
                  });
                },
                hint: Text('Selecciona categoría...'),
-               items: availableCategories.map<DropdownMenuItem<Category>>((cat) {return DropdownMenuItem(child: Text(cat.title), value: cat);}).toList()
+               items: availableCategories.map<DropdownMenuItem<Category>>((cat) {return DropdownMenuItem(child: Text(cat.name), value: cat);}).toList()
              ),
              IconButton(icon: Icon(Icons.clear), onPressed:() {
                setState(() {

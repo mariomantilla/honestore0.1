@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:honestore/models/category.dart';
+import 'package:honestore/screens/favsPage.dart';
 import 'package:honestore/screens/locationSelectorPage.dart';
 import 'package:provider/provider.dart';
 
 import 'package:honestore/models/selectedTab.dart';
 import 'package:honestore/screens/listingPage.dart';
 import 'package:location/location.dart';
+
+import 'listingPage.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -85,7 +88,11 @@ class _HomePageState extends State<HomePage> {
                 arguments: ListingFilters()
             );
           }),
-          IconButton(icon: Icon(Icons.shopping_cart, color: Colors.white,), onPressed: () {
+          IconButton(icon: Icon(Icons.shopping_basket, color: Colors.white,), onPressed: () {
+            Navigator.pushNamed(
+                context,
+                FavouritesPage.routeName
+            );
           }),
         ],
       ),
@@ -113,7 +120,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 child: Center(child: Text(
-                    data.title,
+                    data.name,
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

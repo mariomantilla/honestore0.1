@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:honestore/screens/favsPage.dart';
 import 'package:honestore/screens/listingPage.dart';
 import 'package:honestore/screens/locationSelectorPage.dart';
+import 'package:honestore/screens/tabsHome.dart';
 import 'package:provider/provider.dart';
 import 'models/selectedTab.dart';
 import 'styles/appTheme.dart';
@@ -23,10 +25,12 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         onGenerateRoute: (RouteSettings settings) {
           var routes = <String, WidgetBuilder>{
-            HomePage.routeName: (ctx) => HomePage(),
+            TabsHomePage.routeName: (ctx) => TabsHomePage(),
+            //HomePage.routeName: (ctx) => HomePage(),
             ProductPage.routeName: (ctx) => ProductPage(product: settings.arguments),
-            VendorPage.routeName: (ctx) => VendorPage(),
+            VendorPage.routeName: (ctx) => VendorPage(vendor: settings.arguments),
             ListingPage.routeName: (ctx) => ListingPage(filters: settings.arguments),
+            FavouritesPage.routeName: (ctx) => FavouritesPage(),
             LocationSelectorPage.routeName: (ctx) => LocationSelectorPage(settings.arguments),
           };
           WidgetBuilder builder = routes[settings.name];

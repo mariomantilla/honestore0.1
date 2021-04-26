@@ -1,3 +1,8 @@
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:honestore/models/selectedTab.dart';
+import 'package:honestore/styles/CustomIcons.dart';
+import 'package:provider/provider.dart';
+
 import 'package:honestore/widgets/picsCarousel.dart';
 
 import 'package:honestore/screens/vendorPage.dart';
@@ -7,14 +12,18 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:android_intent/android_intent.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:honestore/widgets/shadowIcon.dart';
 import 'package:intl/intl.dart';
 import 'package:share/share.dart';
 
 import 'package:honestore/models/product.dart';
 import 'package:honestore/models/tag.dart';
 import 'package:honestore/widgets/link.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductPage extends StatelessWidget {
+
   static const routeName = '/product';
   final Product product;
 
@@ -37,44 +46,52 @@ class ProductPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    bool favourite = context.select<SelectedTab, bool>(
+          (s) => s.favourites.contains(product.id),
+    );
     final f = NumberFormat.currency(locale: 'es_ES', symbol: '€');
-
+    var favIcon = favourite ? ShadowIcon(Icons.favorite) : ShadowIcon(Icons.favorite_outline);
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-              pinned: true,
-              expandedHeight: 250.0,
-              flexibleSpace: FlexibleSpaceBar(
-                background: GestureDetector(
-                  onTap: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (BuildContext context) => Scaffold(
-                              body: PicsCarousel(product.images, fit: BoxFit.contain, pinch: true),
-                            )
-                        )
-                    );
-                  },
-                  child: PicsCarousel(product.images),
-                ),
+            elevation: 0,
+            pinned: true,
+            expandedHeight: 250.0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: GestureDetector(
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => Scaffold(
+                            body: PicsCarousel(product.images, fit: BoxFit.contain, pinch: true),
+                          )
+                      )
+                  );
+                },
+                child: PicsCarousel(product.images),
               ),
-              actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.shopping_bag),
-                  onPressed: () { /* ... */ },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_shopping_cart),
-                  onPressed: () { /* ... */ },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: () {
-                    Share.share('Mira este producto en MatterBasket https://matterbasket.com/productos/${product.id}');
-                  },
-                ),
-              ]
+            ),
+            leading: IconButton(
+              icon: ShadowIcon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: favIcon,
+                onPressed: () {
+                  context.read<SelectedTab>().toggleFav(product.id);
+                },
+              ),
+              IconButton(
+                icon: const ShadowIcon(Icons.share),
+                onPressed: () {
+                  Share.share('Mira este producto en Honestore https://honestore.app$routeName/${product.id}');
+                },
+              ),
+            ]
           ),
           SliverList(
             delegate: SliverChildListDelegate([
@@ -82,7 +99,7 @@ class ProductPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.all(10),
+                        padding: EdgeInsets.all(15),
                         child: Text(product.name,
                             style: TextStyle(
                                 fontSize: 24
@@ -119,6 +136,29 @@ class ProductPage extends StatelessWidget {
                           ),)
                       ]
                   )
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.email, color: Colors.black,),
+                    onPressed: () {
+                      launch("mailto:"+product.vendor.email);
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.phone, color: Colors.black,),
+                    onPressed: () {
+                      launch("tel://"+product.vendor.phone);
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(FontAwesomeIcons.whatsapp, color: Colors.black,),
+                    onPressed: () {
+                      launch("https://api.whatsapp.com/send?phone=${product.vendor.whatsapp}&text=Hola, tengo algunas preguntas sobre to producto");
+                    },
+                  )
+                ],
               ),
               Divider(height: 0,),
               Padding(
@@ -161,7 +201,8 @@ class ProductPage extends StatelessWidget {
               ListTile(
                   leading: Icon(Icons.store_sharp, color: Colors.black,),
                   minLeadingWidth: 0,
-                  title: Text('Disponible para recoger')
+                  title: Text('Disponible para recoger'),
+                  subtitle: Text(product.vendor.address),
               ),
               Container(
                 child: Stack(

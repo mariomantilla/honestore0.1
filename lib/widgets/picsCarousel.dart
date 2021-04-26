@@ -9,7 +9,7 @@ class PicsCarousel extends StatelessWidget {
   final BoxFit fit;
   final bool pinch;
 
-  PicsCarousel(this.images, {this.fit = BoxFit.fitWidth, this.pinch = false, Key key}) : super(key: key);
+  PicsCarousel(this.images, {this.fit = BoxFit.cover, this.pinch = false, Key key}) : super(key: key);
 
   Widget carouselElement(image) {
     return pinch ? PhotoView(

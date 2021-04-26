@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:honestore/models/tag.dart';
 import 'package:location/location.dart';
+import 'package:honestore/services/backend.dart';
 import 'package:honestore/models/category.dart' as models;
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 
@@ -13,35 +16,27 @@ class SelectedTab extends ChangeNotifier {
   LocationData currentLocation;
 
   List<models.Category> categories = [];
-
-  var data = [
-    {
-      "image": "alimentacion.jpg",
-      "text": "Alimentación"
-    }, {
-      "image": "higiene.jpg",
-      "text": "Higiene"
-    }, {
-      "image": "libros.jpg",
-      "text": "Libros"
-    }, {
-      "image": "mascotas.jpg",
-      "text": "Mascotas"
-    }, {
-      "image": "juguetes.jpg",
-      "text": "Juguetes"
-    }
-  ];
+  List<Tag> tags = [];
+  List<String> favourites = [];
 
   SelectedTab() {
-    data.asMap().forEach((index, element) {
-      categories.add(models.Category(
-          index,
-          element['text'],
-          AssetImage('images/categories/' + element['image']),
-          []
-      ));
-    });
+    getLoc();
+    getCategories();
+    getTags();
+    getFavourites();
+  }
+
+  getCategories() async {
+    categories = await Backend().getCategories();
+  }
+
+  getTags() async {
+    tags = await Backend().getTags();
+  }
+
+  getFavourites() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    favourites = prefs.getStringList('favourites')??[];
   }
 
   getLoc() async {
@@ -75,6 +70,13 @@ class SelectedTab extends ChangeNotifier {
 
   void changeTab(int tab) {
     selectedTab = tab;
+    notifyListeners();
+  }
+
+  void toggleFav(String id) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    favourites.contains(id) ? favourites.remove(id) : favourites.add(id);
+    await prefs.setStringList('favourites', favourites);
     notifyListeners();
   }
 
