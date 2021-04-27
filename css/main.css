@@ -2755,16 +2755,26 @@ input, select, textarea {
 
 		.spotlight .image {
 			width: 30%;
-			border-radius: 100%;
 			margin: 0 3em 0 0;
 			display: block;
 		}
 
 			.spotlight .image img {
 				display: block;
-				border-radius: 100%;
 				width: 100%;
 			}
+		
+		.spotlight .text {
+			width: 30%;
+			margin: 0 3em 0 0;
+			display: block;
+			text-align: right;
+		}
+
+		.spotlight:nth-child(2n) .text {
+			margin: 0 0 0 3em;
+			text-align: left;
+		}
 
 		.spotlight .content {
 			width: 70%;
@@ -3626,7 +3636,6 @@ input, select, textarea {
 		-webkit-justify-content: center;
 		-ms-justify-content: center;
 		justify-content: center;
-		background-image: url("images/overlay.png"), url("images/pattern-size1.svg");
 		background-position: top left, center center;
 		background-attachment: fixed, fixed;
 		background-size: auto, cover;
@@ -3889,14 +3898,6 @@ input, select, textarea {
 				opacity: 1;
 			}
 
-		@media screen and (max-width: 1280px) {
-
-			#header {
-				background-image: url("images/overlay.png"), url("images/pattern-size2.svg");
-			}
-
-		}
-
 		@media screen and (max-width: 980px) {
 
 			#header {
@@ -3942,9 +3943,6 @@ input, select, textarea {
 
 		@media screen and (max-width: 736px) {
 
-			#header {
-				background-image: url("images/overlay.png"), url("images/pattern-size3.svg");
-			}
 
 				#header h1 {
 					font-size: 2em;
